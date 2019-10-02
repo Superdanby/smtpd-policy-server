@@ -67,10 +67,10 @@ func respond(smtpd_request *map[string]string, writer *bufio.Writer, api_client 
     resp, err := api_client.Get(req)
     if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
         fmt.Println(err)
-        response = "action=DEFER connection timeout\n\n"
+        response = "action=DEFER Please try again later\n\n"
     } else if err != nil {
         fmt.Println(err)
-        response = "action=DEFER connection error\n\n"
+        response = "action=DEFER Please try again later\n\n"
     }
     if response == "" {
         defer resp.Body.Close()
@@ -87,14 +87,14 @@ func respond(smtpd_request *map[string]string, writer *bufio.Writer, api_client 
             }
             response = "action=REJECT " + api_error.Error + "\n\n"
         } else if resp.StatusCode == 400 {
-            response = "action=REJECT " + resp.Status[4:] + "\n\n"
+            response = "action=REJECT Bad request\n\n"
         } else if resp.StatusCode == 503 {
-            response = "action=DEFER " + resp.Status[4:] + "\n\n"
+            response = "action=DEFER Please try again later\n\n"
         } else {
             err = json.NewDecoder(resp.Body).Decode(&api_error)
             if err != nil {
                 fmt.Println("Decode Error field failed!")
-                response = "action=REJECT " + resp.Status[4:] + "\n\n"
+                response = "action=REJECT Bad request\n\n"
             } else {
                 response = "action=REJECT " + api_error.Error + "\n\n"
             }
