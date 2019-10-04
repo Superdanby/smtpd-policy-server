@@ -162,9 +162,9 @@ func handleConnection(conn net.Conn, api_client *http.Client, client_semaphore c
 }
 
 func main() {
-    server_socket_ptr := flag.String("socket", "127.0.0.1:8888", "Socket to listen on. Default: 127.0.0.1:8888")
-    max_conns_per_host_ptr := flag.Int("max_per_host", 10, "Max connections per host. Default: 10")
-    max_req_buf := flag.Int64("max_req_buf", 100, "Max requests buffered from all clients. More requests will be read after the number of buffered requests goes down. Default: 100")
+    server_socket_ptr := flag.String("socket", "127.0.0.1:8888", "Socket to listen on.")
+    max_conns_per_host_ptr := flag.Int("max_per_host", 10, "Max connections per host.")
+    max_req_buf := flag.Int64("max_req_buf", 100, "Max requests buffered from all clients. More requests will be read after the number of buffered requests goes down.")
     flag.Parse()
 
     // setup tcp socket listener
@@ -173,6 +173,7 @@ func main() {
         fmt.Println(err)
     	panic("Cannot listen on socket:" + *server_socket_ptr + "\n")
     }
+    fmt.Println("Serving on " + *server_socket_ptr)
     tr := &http.Transport{
         MaxIdleConns: *max_conns_per_host_ptr,
     	MaxIdleConnsPerHost: *max_conns_per_host_ptr,
