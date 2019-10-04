@@ -89,6 +89,7 @@ func respond(smtpd_request *map[string]string, writer *bufio.Writer, api_client 
         } else if resp.StatusCode == 400 {
             response = "action=REJECT Bad request\n\n"
         } else if resp.StatusCode == 503 {
+            fmt.Println(resp.Status)
             response = "action=DEFER Please try again later\n\n"
         } else {
             err = json.NewDecoder(resp.Body).Decode(&api_error)
@@ -131,11 +132,12 @@ func handleConnection(conn net.Conn, api_client *http.Client, client_semaphore c
 
     // get and process new requests
     for {
+        <- client_semaphore // limit buffered requests
         if receive_cnt == math.MaxInt64 {
             fmt.Println("Max receive count reached. Reseting connection.")
+            client_semaphore <- -1
             return
         }
-        <- client_semaphore // limit buffered requests
 
         // build smtpd request dictionary
         smtpd_request := make(map[string]string) // smtpd request
@@ -143,9 +145,11 @@ func handleConnection(conn net.Conn, api_client *http.Client, client_semaphore c
             smtpd_field, err := reader.ReadString('\n')
             if err == io.EOF {
                 fmt.Println("Reader EOF reached")
+                client_semaphore <- -1
                 return
             } else if err != nil {
                 fmt.Println("Client connection failure")
+                client_semaphore <- -1
                 return
             }
             if smtpd_field == "\n" { // smtpd requests stop with an empty line: http://postfix.cs.utah.edu/SMTPD_POLICY_README.html
@@ -154,7 +158,7 @@ func handleConnection(conn net.Conn, api_client *http.Client, client_semaphore c
             key_val := strings.SplitN(smtpd_field, "=", 2)
             smtpd_request[key_val[0]] = strings.TrimSuffix(key_val[1], "\n")
         }
-        // fmt.Println(smtpd_request)
+        fmt.Println(smtpd_request)
 
         go respond(&smtpd_request, writer, api_client, &response_queue, receive_cnt, &transmit_cnt, &lock, client_semaphore)
         receive_cnt += 1
